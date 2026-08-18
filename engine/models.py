@@ -51,6 +51,16 @@ class MarkHit:
     before: str
     after: str
 
+    def to_dict(self) -> dict:
+        return {
+            "symbol": self.symbol,
+            "letter": self.letter,
+            "name": self.name,
+            "rule": self.rule,
+            "waqf_on": self.before,
+            "ibtida_from": self.after,
+        }
+
 
 @dataclass
 class Verse:
@@ -60,6 +70,20 @@ class Verse:
     text: str
     marks: list[MarkHit] = field(default_factory=list)
 
+    def to_dict(self) -> dict:
+        from .pages import page_of
+
+        page, juz = page_of(self.surah, self.ayah)
+        return {
+            "surah": self.surah,
+            "ayah": self.ayah,
+            "surah_name": self.surah_name,
+            "text": self.text,
+            "page": page,
+            "juz": juz,
+            "marks": [m.to_dict() for m in self.marks],
+        }
+
 
 @dataclass
 class DocHit:
@@ -67,6 +91,14 @@ class DocHit:
     title: str
     snippet: str
     score: float
+
+    def to_dict(self) -> dict:
+        return {
+            "path": self.path,
+            "title": self.title,
+            "snippet": self.snippet,
+            "score": self.score,
+        }
 
 
 @dataclass
@@ -79,3 +111,20 @@ class ContextPack:
     docs: list[DocHit] = field(default_factory=list)
     protocol: str = ""
     warnings: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        cards = []
+        if self.kind in {"verse", "range"} and len(self.verses) <= 5:
+            from .match import alignment_card
+
+            cards = [alignment_card(v) for v in self.verses]
+        return {
+            "query": self.query,
+            "kind": self.kind,
+            "warnings": self.warnings,
+            "verses": [v.to_dict() for v in self.verses],
+            "neighbors": [v.to_dict() for v in self.neighbors],
+            "notes": [{"path": p, "text": t} for p, t in self.notes],
+            "docs": [d.to_dict() for d in self.docs],
+            "cards": cards,
+        }

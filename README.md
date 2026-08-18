@@ -42,6 +42,16 @@ python3 -m engine "معانقه چیست"
 
 جزئیات: [`engine/README.md`](engine/README.md)
 
+## استفادهٔ محلی با HTML
+
+```bash
+python3 -m engine serve
+```
+
+مرورگر: [http://127.0.0.1:8765](http://127.0.0.1:8765)
+
+راهنمای کامل: [`LOCAL.md`](LOCAL.md)
+
 ## علائم وقف در متن
 
 | علامت | حرف مصحف | معنا به زبان ساده |

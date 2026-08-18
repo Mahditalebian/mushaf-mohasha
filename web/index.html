@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>مصحف محشی — موتور محلی</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <p class="kicker">موتور محلی · وقف و وصل و ابتدا</p>
+    <h1>مصحف محشی</h1>
+    <p class="lead">آیه را بنویس. علائم، صفحهٔ کتاب، محل وقف و محل ابتدا را جدا می‌بینی.</p>
+  </header>
+
+  <form id="form">
+    <label for="q">پرسش</label>
+    <div class="row">
+      <input id="q" name="q" type="search" autocomplete="off"
+        placeholder="مثلاً: آل عمران ۱۵۶   یا   بقره ۹۱   یا   همه وقف لازم" />
+      <button type="submit">بپرس</button>
+    </div>
+    <div class="chips" id="chips">
+      <button type="button" data-q="بقره ۹۱">بقره ۹۱</button>
+      <button type="button" data-q="آل عمران ۱۵۶">آل عمران ۱۵۶</button>
+      <button type="button" data-q="یونس ۶۵">یونس ۶۵</button>
+      <button type="button" data-q="همه وقف لازم">وقف لازم</button>
+      <button type="button" data-q="معانقه چیست">معانقه</button>
+    </div>
+  </form>
+
+  <p id="status" hidden></p>
+  <main id="out"></main>
+
+  <footer>
+    داده از همین پوشه خوانده می‌شود. سؤال در اینترنت نمی‌رود.
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>

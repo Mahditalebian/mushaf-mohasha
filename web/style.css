@@ -1,0 +1,81 @@
+:root {
+  --ink: #1c1915;
+  --muted: #5c564c;
+  --paper: #f6f1e6;
+  --card: #fffdf8;
+  --line: #e4d8c4;
+  --accent: #6b3f1d;
+  --mark: #8a2f1a;
+  --ok: #2d5a3d;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Vazirmatn", "Tahoma", "Segoe UI", sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.75;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1.2rem 4rem;
+}
+header { margin-bottom: 1.5rem; }
+.kicker { color: var(--accent); letter-spacing: .04em; margin: 0 0 .3rem; }
+h1 { font-size: 1.8rem; margin: 0 0 .4rem; }
+.lead, footer { color: var(--muted); }
+label { display: block; font-weight: 700; margin-bottom: .4rem; }
+.row { display: flex; gap: .6rem; }
+input {
+  flex: 1;
+  font: inherit;
+  padding: .7rem .9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+button {
+  font: inherit;
+  font-weight: 700;
+  border: 0;
+  border-radius: 10px;
+  padding: .7rem 1.1rem;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem; }
+.chips button {
+  background: #fff;
+  color: var(--accent);
+  border: 1px solid var(--line);
+  font-weight: 600;
+  padding: .35rem .7rem;
+}
+#status { color: var(--muted); }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin: 1rem 0;
+}
+.ayah {
+  font-size: 1.25rem;
+  line-height: 2.1;
+  font-family: "Amiri", "Scheherazade New", "Traditional Arabic", serif;
+}
+.meta { color: var(--muted); font-size: .92rem; }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+th, td { border-bottom: 1px solid var(--line); text-align: right; padding: .45rem .3rem; vertical-align: top; }
+th { color: var(--accent); }
+.ibtida { color: var(--ok); font-weight: 700; }
+.waqf { color: var(--mark); font-weight: 700; }
+pre, .note {
+  white-space: pre-wrap;
+  background: #f3eee3;
+  padding: .8rem;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+h2 { font-size: 1.15rem; margin: 1.2rem 0 .4rem; }
+footer { margin-top: 3rem; font-size: .9rem; }

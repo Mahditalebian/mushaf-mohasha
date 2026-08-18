@@ -22,11 +22,10 @@ ayat/**                    فقط اگر از قبل یادداشت باشد
 
 ```bash
 python3 -m engine "بقره ۹۱"
-python3 -m engine "یونس 65"
-python3 -m engine "2:26"
-python3 -m engine "همه وقف لازم"
-python3 -m engine "معانقه چیست"
+python3 -m engine serve
 ```
+
+صفحهٔ HTML: http://127.0.0.1:8765  (راهنما: [`LOCAL.md`](../LOCAL.md))
 
 یا:
 
