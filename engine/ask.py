@@ -80,10 +80,10 @@ def format_pack(pack: ContextPack) -> str:
             if v.marks:
                 lines.append("علائم:")
                 for m in v.marks:
-                    bit = f"- {m.symbol} {m.letter} / {m.name}: بعد از «{m.before}»"
+                    bit = f"- وقف روی «{m.before}» — {m.symbol} {m.letter} / {m.name}"
                     if m.after:
-                        bit += f" و پیش از «{m.after}»"
-                    bit += f" — {m.rule}"
+                        bit += f"\n  ابتدا از: «{m.after}»"
+                    bit += f"\n  {m.rule}"
                     lines.append(bit)
             else:
                 lines.append("علامت میانی ندارد. رأس آیه را جدا در نظر بگیر. اگر نفس نرسید بهترین نقطهٔ معنایی را بگو.")

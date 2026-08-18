@@ -67,9 +67,16 @@ def alignment_card(verse: Verse) -> str:
         n += 1
         meta = MARKS[mark]
         last = " ".join(chunk.split()[-5:])
+        nxt = ""
+        for later_chunk, _ in segs[segs.index((chunk, mark)) + 1 :]:
+            if later_chunk.strip():
+                nxt = " ".join(later_chunk.split()[:6])
+                break
         lines.append(
-            f"{n}. بعد از «{last}» علامت **{meta['letter']} / {meta['name']}** {mark}"
+            f"{n}. وقف روی «{last}» — علامت **{meta['letter']} / {meta['name']}** {mark}"
         )
+        if nxt:
+            lines.append(f"   ابتدا از: «{nxt}»")
         lines.append(f"   کار در محشی: {meta['rule']}")
         lines.append(f"   در کتاب: همین علامت باید روی همین کلمه باشد.")
     if n == 0:
@@ -97,8 +104,8 @@ def alignment_card(verse: Verse) -> str:
 
     lines.append("### رأس آیه")
     lines.append(
-        f"آخر آیه «{' '.join(verse.text.split()[-3:])}» — وقف رأس آیه سنت است، "
-        "حتی اگر از نظر اعراب حسن باشد."
+        f"وقف روی آخر آیه «{' '.join(verse.text.split()[-3:])}» — سنت است، "
+        "حتی اگر از نظر اعراب حسن باشد. ابتدا از اول آیهٔ بعد."
     )
     lines.append("")
     lines.append("### اگر با کتاب یکی نبود")
