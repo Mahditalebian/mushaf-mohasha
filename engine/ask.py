@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from . import knowledge, quran
+from .match import alignment_card
 from .models import ContextPack, Verse
 from .parse import parse_query
 
@@ -87,6 +88,11 @@ def format_pack(pack: ContextPack) -> str:
             else:
                 lines.append("علامت میانی ندارد. رأس آیه را جدا در نظر بگیر. اگر نفس نرسید بهترین نقطهٔ معنایی را بگو.")
             lines.append("")
+        if pack.kind in {"verse", "range"} and len(pack.verses) <= 3:
+            lines.append("## تطبیق با مصحف محشی")
+            for v in pack.verses:
+                lines.append(alignment_card(v))
+                lines.append("")
 
     if pack.neighbors:
         lines.append("## آیه قبل و بعد")

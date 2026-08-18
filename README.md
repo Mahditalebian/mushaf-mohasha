@@ -38,6 +38,8 @@ python3 -m engine "همه وقف لازم"
 python3 -m engine "معانقه چیست"
 ```
 
+برای تطبیق با کتاب کاغذی، همان فرمان کارت صفحه + چک‌لیست علائم + تکه‌های بی‌علامت را می‌دهد. روش: [`docs/07-tatbiq.md`](docs/07-tatbiq.md)
+
 جزئیات: [`engine/README.md`](engine/README.md)
 
 ## علائم وقف در متن
