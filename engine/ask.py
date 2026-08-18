@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import knowledge, quran
+from . import jadval, knowledge, quran
 from .match import alignment_card
 from .models import ContextPack, Verse
 from .parse import parse_query
@@ -22,6 +22,7 @@ def ask(question: str) -> ContextPack:
             note = knowledge.existing_note(parsed.surah, ayah)
             if note:
                 pack.notes.append(note)
+            pack.jadval.extend(jadval.by_verse(parsed.surah, ayah))
         if parsed.kind == "verse" and pack.verses:
             v0 = pack.verses[0]
             pack.neighbors = quran.neighbors(v0.surah, v0.ayah)
@@ -99,6 +100,16 @@ def format_pack(pack: ContextPack) -> str:
         for v in pack.neighbors:
             lines.append(f"- {v.surah}:{v.ayah} {v.text}")
         lines.append("")
+
+    if pack.jadval:
+        lines.append("## جدول مصحف محشی (حسینی)")
+        for row in pack.jadval:
+            lines.append(jadval.format_row(row))
+            chk = jadval.verify_row(row)
+            if not chk["ok"]:
+                bad = [h["phrase"] for h in chk["hits"] if h["ok"] is False]
+                lines.append("  (عبارت در آیه پیدا نشد: " + "، ".join(bad) + ")")
+            lines.append("")
 
     if pack.notes:
         lines.append("## یادداشت موجود در ریپو")

@@ -52,6 +52,27 @@ function render(data) {
       bits.push(`<p class="ayah"><span class="meta">${v.surah}:${v.ayah}</span> ${esc(v.text)}</p>`);
     });
   }
+  if (data.jadval && data.jadval.length) {
+    bits.push("<h2>جدول مصحف محشی</h2>");
+    data.jadval.forEach((row) => {
+      const pairs = [];
+      const n = Math.max((row.waqf || []).length, (row.ibtida || []).length);
+      for (let i = 0; i < n; i++) {
+        const w = (row.waqf || [])[i] || {};
+        const b = (row.ibtida || [])[i] || {};
+        const tag = w.tag || b.tag || "";
+        pairs.push(`<tr>
+          <td>${esc(tag)}</td>
+          <td class="waqf">${esc(w.on || "—")}</td>
+          <td class="ibtida">${esc(b.from || "—")}</td>
+        </tr>`);
+      }
+      bits.push(`<article class="card"><table>
+        <thead><tr><th>نوع</th><th>وقف روی</th><th>ابتدا از</th></tr></thead>
+        <tbody>${pairs.join("")}</tbody>
+      </table></article>`);
+    });
+  }
   (data.notes || []).forEach((n) => {
     bits.push(`<h2>یادداشت ریپو</h2><p class="meta">${esc(n.path)}</p><div class="note">${esc(n.text)}</div>`);
   });

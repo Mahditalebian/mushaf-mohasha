@@ -109,6 +109,7 @@ class ContextPack:
     neighbors: list[Verse] = field(default_factory=list)
     notes: list[tuple[str, str]] = field(default_factory=list)
     docs: list[DocHit] = field(default_factory=list)
+    jadval: list[dict] = field(default_factory=list)
     protocol: str = ""
     warnings: list[str] = field(default_factory=list)
 
@@ -126,5 +127,6 @@ class ContextPack:
             "neighbors": [v.to_dict() for v in self.neighbors],
             "notes": [{"path": p, "text": t} for p, t in self.notes],
             "docs": [d.to_dict() for d in self.docs],
+            "jadval": self.jadval,
             "cards": cards,
         }
