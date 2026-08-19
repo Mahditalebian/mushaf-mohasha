@@ -22,6 +22,14 @@ def main(argv: list[str] | None = None) -> int:
         from .check import main as check
 
         return check(args[1:])
+    if cmd in {"best", "بهترین"}:
+        from .best import best_cli
+
+        return best_cli(args[1:])
+    if cmd in {"nahy", "نایست"}:
+        from .nahy import nahy_cli
+
+        return nahy_cli(args[1:])
     question = " ".join(args)
     from .ask import ask, format_pack
 

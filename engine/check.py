@@ -67,6 +67,40 @@ def verify() -> Report:
         r.add(any(m.symbol == "ۗ" for m in v.marks), "قلی روی معهم در بقره ۹۱")
     r.add(bool(pack.jadval), "جدول محشی برای بقره ۹۱")
     r.add(bool(pack.explanation and pack.explanation.get("waqf")), "استدلال چهاربخشی ساخته شد")
+
+    from .best import best_places, summary
+
+    best91 = best_places(2, 91)
+    r.add(bool(best91 and best91[0].get("waqf_on")), "بهترین مواضع برای بقره ۹۱")
+    best101 = best_places(5, 101)
+    r.add(
+        any(e.get("source", "").startswith("تأیید دو منبع") for e in best101),
+        "تأیید دو منبع (محشی + علامت چاپی) در مائده ۱۰۱",
+    )
+    s = summary()
+    r.add(s["total"] == 6236, f"کل آیات در ترکیب: {s['total']}")
+    r.add(s["coverage"] == 6236, f"پوشش بهترین مواضع: {s['coverage']} آیه (کل قرآن)")
+    r.add(s["agreements"] >= 0, f"مواضع تأیید دو منبع: {s['agreements']}")
+
+    from .nahy import forbidden_stops
+
+    n258 = forbidden_stops(quran.make_verse(2, 258))
+    kinds258 = {h["kind"] for h in n258}
+    r.add(bool(n258), "تحلیل «نایست» برای بقره ۲۵۸")
+    r.add(any("قول" in k for k in kinds258), "نایست روی فعل قول در بقره ۲۵۸")
+    r.add(any("موصول" in k for k in kinds258), "نایست روی موصول در بقره ۲۵۸")
+    r.add(any("حرف جر" in k for k in kinds258), "نایست روی حرف جر در بقره ۲۵۸")
+    r.add(
+        all(h["on"] != "ٱلظَّٰلِمِينَ" for h in n258),
+        "رأس آیه در تحلیل «نایست» نمی‌آید",
+    )
+    n1 = forbidden_stops(quran.make_verse(1, 1))
+    r.add(any("مضاف" in h["kind"] for h in n1), "نایست روی مضاف «بسم» در فاتحه")
+    n255 = forbidden_stops(quran.make_verse(2, 255))
+    r.add(any("نفی جنس" in h["kind"] for h in n255), "نفی جنس «لا إله إلا» در آیه‌الکرسی")
+    n2 = forbidden_stops(quran.make_verse(2, 2))
+    r.add(any("معانقه" in h["kind"] for h in n2), "احتیاط معانقه در بقره ۲")
+    r.add(bool(pack.nahy), "تحلیل «نایست» در پاسخ کامل هم می‌آید")
     return r
 
 
