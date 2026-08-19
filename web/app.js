@@ -1,33 +1,40 @@
 const form = document.getElementById("form");
 const input = document.getElementById("q");
 const out = document.getElementById("out");
-const welcome = document.getElementById("welcome");
 const statusEl = document.getElementById("status");
 const submitButton = document.getElementById("submitButton");
-const submitLabel = submitButton.querySelector(".submit-button__label");
-const clearSearch = document.getElementById("clearSearch");
-const themeToggle = document.getElementById("themeToggle");
+const submitLabel = document.getElementById("submitLabel");
+const resultKind = document.getElementById("resultKind");
+const resultTitle = document.getElementById("resultTitle");
+const resultSubtitle = document.getElementById("resultSubtitle");
+const pageMeta = document.getElementById("pageMeta");
 const healthBadge = document.getElementById("healthBadge");
 const healthText = document.getElementById("healthText");
-const backToTop = document.getElementById("backToTop");
+const sidebarHealth = document.getElementById("sidebarHealth");
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+const menuButton = document.getElementById("menuButton");
+const toast = document.getElementById("toast");
+const toastText = document.getElementById("toastText");
 
 let activeRequest = null;
+let toastTimer = null;
 
 const ICONS = {
   sparkle: '<path d="m12 3 1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3Zm6 11 .8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8L18 14Z" />',
-  table: '<path d="M4 5h16v14H4V5Zm0 5h16M9 5v14" />',
-  warning: '<path d="M12 8v5m0 4h.01M4.5 20h15a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0L2.8 17a2 2 0 0 0 1.7 3Z" />',
   stop: '<path d="M8 3h8l5 5v8l-5 5H8l-5-5V8l5-5Zm4 5v5" />',
   link: '<path d="m9 15 6-6m-8.5 9.5-1 1a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0m9-6 1-1a3.5 3.5 0 1 1 5 5l-3 3a3.5 3.5 0 0 1-5 0" />',
   play: '<path d="M8 5v14l11-7L8 5Z" />',
+  warning: '<path d="M12 8v5m0 4h.01M4.5 20h15a2 2 0 0 0 1.7-3L13.7 4a2 2 0 0 0-3.4 0L2.8 17a2 2 0 0 0 1.7 3Z" />',
   book: '<path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H12v17H7a3 3 0 0 0-3 3V5.5ZM20 5.5A3.5 3.5 0 0 0 16.5 2H12v17h5a3 3 0 0 1 3 3V5.5Z" />',
-  layers: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5m-18 4 9 5 9-5" />',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Zm-3-10 2 2 4-4" />',
   info: '<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-11v6m0-10h.01" />',
-  chevron: '<path d="m9 18 6-6-6-6" />',
+  chevron: '<path d="m6 9 6 6 6-6" />',
+  layers: '<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5m-18 4 9 5 9-5" />',
 };
 
-function icon(name, className = "") {
-  return `<svg class="${className}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.info}</svg>`;
+function icon(name) {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ICONS.info}</svg>`;
 }
 
 function esc(value) {
@@ -50,17 +57,11 @@ function inlineMarkdown(value) {
 }
 
 function tableCells(line) {
-  return line
-    .trim()
-    .replace(/^\|/, "")
-    .replace(/\|$/, "")
-    .split("|")
-    .map((cell) => cell.trim());
+  return line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
 }
 
 function isTableDivider(line) {
-  if (!line || !line.includes("|")) return false;
-  return tableCells(line).every((cell) => /^:?-{3,}:?$/.test(cell));
+  return Boolean(line && line.includes("|") && tableCells(line).every((cell) => /^:?-{3,}:?$/.test(cell)));
 }
 
 function prose(value) {
@@ -69,34 +70,27 @@ function prose(value) {
   let index = 0;
 
   while (index < lines.length) {
-    const line = lines[index];
-    const trimmed = line.trim();
-
+    const trimmed = lines[index].trim();
     if (!trimmed) {
       index += 1;
       continue;
     }
 
-    if (line.includes("|") && isTableDivider(lines[index + 1])) {
-      const headings = tableCells(line);
+    if (lines[index].includes("|") && isTableDivider(lines[index + 1])) {
+      const headings = tableCells(lines[index]);
       const rows = [];
       index += 2;
-      while (index < lines.length && lines[index].includes("|") && lines[index].trim()) {
+      while (index < lines.length && lines[index].trim() && lines[index].includes("|")) {
         rows.push(tableCells(lines[index]));
         index += 1;
       }
-      html.push(`<div class="table-wrap"><table><thead><tr>${headings
-        .map((cell) => `<th>${inlineMarkdown(cell)}</th>`)
-        .join("")}</tr></thead><tbody>${rows
-        .map((row) => `<tr>${row.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join("")}</tr>`)
-        .join("")}</tbody></table></div>`);
+      html.push(`<div class="table-scroll"><table><thead><tr>${headings.map((cell) => `<th>${inlineMarkdown(cell)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
       continue;
     }
 
     const heading = trimmed.match(/^(#{1,6})\s+(.+)$/);
     if (heading) {
-      const level = heading[1].length <= 2 ? "h4" : "h5";
-      html.push(`<${level}>${inlineMarkdown(heading[2])}</${level}>`);
+      html.push(`<h4>${inlineMarkdown(heading[2])}</h4>`);
       index += 1;
       continue;
     }
@@ -143,299 +137,253 @@ function prose(value) {
     }
     html.push(`<p>${paragraph.map(inlineMarkdown).join("<br>")}</p>`);
   }
-
   return html.join("");
 }
 
-function setStatus(text = "", type = "info") {
-  statusEl.hidden = !text;
-  statusEl.textContent = text;
-  statusEl.className = `system-message${type === "error" ? " system-message--error" : ""}`;
+function showToast(message) {
+  toastText.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
+}
+
+function setStatus(message = "", type = "info") {
+  statusEl.hidden = !message;
+  statusEl.textContent = message;
+  statusEl.className = `system-message${type === "error" ? " error" : ""}`;
 }
 
 function setLoading(loading) {
   form.setAttribute("aria-busy", String(loading));
   submitButton.disabled = loading;
-  submitButton.classList.toggle("is-loading", loading);
+  submitButton.classList.toggle("loading", loading);
   submitLabel.textContent = loading ? "در حال تحلیل" : "تحلیل آیه";
 }
 
+function closeMenu() {
+  sidebar.classList.remove("open");
+  overlay.classList.remove("show");
+  menuButton.setAttribute("aria-expanded", "false");
+}
+
 function loadingTemplate() {
-  return `<div class="skeleton" aria-hidden="true">
-    <div class="skeleton__title"></div>
-    <div class="skeleton__card"></div>
-    <div class="skeleton__line"></div>
-    <div class="skeleton__line skeleton__line--short"></div>
+  return `<div class="skeleton-dashboard" aria-hidden="true">
+    <div class="skeleton-stack"><div class="skeleton-block large"></div><div class="skeleton-block"></div><div class="skeleton-block large"></div></div>
+    <div class="skeleton-block side"></div>
   </div>`;
 }
 
-function sectionHeading(iconName, title, description = "") {
-  return `<div class="section-heading">
-    <span class="section-heading__icon">${icon(iconName)}</span>
-    <div><h2>${esc(title)}</h2>${description ? `<p>${esc(description)}</p>` : ""}</div>
-  </div>`;
+function renderPrintedMarks(verse) {
+  const marks = verse.marks || [];
+  if (!marks.length) return '<p class="no-mark">این آیه علامت میانی ندارد؛ وقف بر رأس آیه سنت است و ابتدا از آیهٔ بعد خواهد بود.</p>';
+  return `<div class="printed-marks">${marks.map((mark) => `<article class="printed-mark">
+    <span class="printed-mark__symbol">${esc(mark.letter || mark.symbol)}${mark.symbol ? ` ${esc(mark.symbol)}` : ""}</span>
+    <div>
+      <strong>${esc(mark.name || "علامت وقف")}</strong>
+      <div class="printed-mark__path"><span class="stop">وقف: «${esc(mark.waqf_on || "—")}»</span><span class="start">ابتدا: «${esc(mark.ibtida_from || "آیهٔ بعد")}»</span></div>
+      <p>${esc(mark.rule || "")}</p>
+    </div>
+  </article>`).join("")}</div>`;
+}
+
+function renderVerse(verse) {
+  const markCount = (verse.marks || []).length;
+  return `<article class="card ayah-card">
+    <header class="ayah-head">
+      <div class="ayah-id">
+        <span class="ayah-number">${faDigits(verse.ayah)}</span>
+        <div><strong>سورهٔ ${esc(verse.surah_name)}</strong><small>${esc(verse.surah)}:${esc(verse.ayah)}</small></div>
+      </div>
+      <div class="ayah-location">${verse.page ? `<span>صفحهٔ ${faDigits(verse.page)}</span>` : ""}${verse.juz ? `<span>جزء ${faDigits(verse.juz)}</span>` : ""}</div>
+    </header>
+    <p class="ayah-text">${esc(verse.text)}</p>
+    <details class="marks-details">
+      <summary><span>${icon("layers")} ${markCount ? `${faDigits(markCount)} علامت وقف چاپی در این آیه` : "وضعیت وقف میانی این آیه"}</span>${icon("chevron")}</summary>
+      ${renderPrintedMarks(verse)}
+    </details>
+  </article>`;
 }
 
 function renderBest(best) {
   if (!best || !best.length) return "";
-
-  const cards = best
-    .map((item, position) => {
-      const rank = Number(item.rank || position + 1);
-      const agreed = String(item.source || "").startsWith("تأیید دو منبع");
-      const classes = ["best-card", rank === 1 ? "best-card--first" : "", agreed ? "best-card--agreed" : ""]
-        .filter(Boolean)
-        .join(" ");
-      return `<article class="${classes}">
-        <div class="best-card__head">
-          <span class="rank-badge"><b>${faDigits(rank)}</b> انتخاب ${rank === 1 ? "برتر" : `شمارهٔ ${faDigits(rank)}`}</span>
-          <span class="score-pill">اطمینان ${faDigits(item.score || 0)}٪</span>
-        </div>
-        <div class="stop-start">
-          <div class="stop-start__item stop-start__item--stop">
-            <span>وقف روی</span>
-            <strong>${esc(item.waqf_on || "—")}</strong>
-          </div>
-          <div class="stop-start__item stop-start__item--start">
-            <span>ابتدا از</span>
-            <strong>${esc(item.ibtida_from || "—")}</strong>
-          </div>
-        </div>
-        <p class="best-card__source">${agreed ? "✓ " : ""}${esc(item.source || "منبع نامشخص")}</p>
-        ${item.note ? `<p class="best-card__note">${esc(item.note)}</p>` : ""}
-      </article>`;
-    })
-    .join("");
-
-  return `<section class="result-block">
-    <div class="block-heading">
-      <div class="block-heading__title">
-        <span class="block-heading__icon">${icon("sparkle")}</span>
-        <div><h3>بهترین مواضع برای وقف</h3><p>رتبه‌بندی بر پایهٔ جدول محشی و علائم چاپی مصحف</p></div>
-      </div>
-    </div>
-    <div class="best-grid">${cards}</div>
-  </section>`;
-}
-
-function renderDecisionTable(rows) {
-  if (!rows || !rows.length) return "";
-  const body = rows
-    .map(
-      (row) => `<tr>
-        <td><span class="source-pill">${esc(row.tag || "—")}</span></td>
-        <td class="waqf">${esc(row.on || "—")}</td>
-        <td class="ibtida">${esc(row.from || "—")}</td>
-        <td>${esc(row.why || "")}</td>
-      </tr>`
-    )
-    .join("");
-
-  return `<section class="result-block">
-    <div class="block-heading">
-      <div class="block-heading__title">
-        <span class="block-heading__icon">${icon("table")}</span>
-        <div><h3>جدول وقف و ابتدا</h3><p>وقف روی هر عبارت و محل درست آغاز دوباره</p></div>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>نوع</th><th>وقف روی</th><th>ابتدا از</th><th>دلیل</th></tr></thead>
-        <tbody>${body}</tbody>
-      </table>
-    </div>
-  </section>`;
-}
-
-function renderNahy(items) {
-  if (!items || !items.length) return "";
-  const cards = items
-    .map(
-      (item) => `<article class="nahy-item">
-        <span class="nahy-item__mark">${esc(item.on || "—")}</span>
-        <div>
-          <div class="nahy-item__head">
-            <strong>${esc(item.kind || "وقف نادرست")}</strong>
-            <span class="severity-pill">${esc(item.severity || "ممنوع")}</span>
-          </div>
-          <p>${esc(item.reason || "")}</p>
-        </div>
-      </article>`
-    )
-    .join("");
-
-  return `<section class="result-block">
-    <div class="block-heading">
-      <div class="block-heading__title">
-        <span class="block-heading__icon" style="background:var(--danger-soft);color:var(--danger)">${icon("warning")}</span>
-        <div><h3>کجا نباید وقف کرد؟</h3><p>تحلیل کلمه‌به‌کلمهٔ مواضعی که معنا را ناقص یا منحرف می‌کنند</p></div>
-      </div>
-    </div>
-    <div class="nahy-list">${cards}</div>
-  </section>`;
-}
-
-function renderInsights(explanation) {
-  const items = [
-    { key: "waqf", number: "۰۱", title: "دلیل وقف", icon: "stop" },
-    { key: "wasl", number: "۰۲", title: "دلیل وصل", icon: "link" },
-    { key: "ibtida", number: "۰۳", title: "دلیل ابتدا", icon: "play" },
-    { key: "wrong", number: "۰۴", title: "حالات اشتباه", icon: "warning", danger: true },
-  ].filter((item) => explanation[item.key]);
-
-  if (!items.length) return "";
-
-  return `<section class="result-block">
-    <div class="block-heading">
-      <div class="block-heading__title">
-        <span class="block-heading__icon">${icon("layers")}</span>
-        <div><h3>استدلال معنایی</h3><p>چهار وجه اصلی برای یک تلاوت معنا‌محور</p></div>
-      </div>
-    </div>
-    <div class="insights-grid">${items
-      .map(
-        (item) => `<article class="insight-card${item.danger ? " insight-card--wrong" : ""}">
-          <div class="insight-card__heading">
-            <span class="insight-card__icon">${icon(item.icon)}</span>
-            <div><span class="insight-card__number">${item.number}</span><h3>${item.title}</h3></div>
-          </div>
-          <div class="prose">${prose(explanation[item.key])}</div>
-        </article>`
-      )
-      .join("")}</div>
-  </section>`;
-}
-
-function renderExplain(explanation, data) {
-  if (!explanation) return "";
-  const isVerse = ["verse", "range"].includes(data.kind);
-  const best = explanation.best || data.best || [];
-  const nahy = explanation.nahy || data.nahy || [];
-  const intro = explanation.intro || "";
-
-  return `<article class="analysis-card">
-    ${isVerse && intro ? `<div class="verse-showcase"><div class="verse-showcase__text">${prose(intro)}</div></div>` : ""}
-    <div class="analysis-body">
-      ${!isVerse && intro ? `<div class="prose">${prose(intro)}</div>` : ""}
-      ${renderBest(best)}
-      ${renderDecisionTable(explanation.table)}
-      ${renderNahy(nahy)}
-      ${renderInsights(explanation)}
-      ${
-        explanation.disclaimer
-          ? `<p class="disclaimer">${icon("info")}<span>${esc(explanation.disclaimer)}</span></p>`
-          : ""
-      }
-    </div>
-  </article>`;
-}
-
-function renderVerse(verse) {
-  const marks = (verse.marks || [])
-    .map(
-      (mark) => `<article class="mark-card">
-        <span class="mark-card__symbol">${esc(mark.letter || mark.symbol)}${mark.symbol ? ` ${esc(mark.symbol)}` : ""}</span>
-        <div class="mark-card__body">
-          <div class="mark-card__name">${esc(mark.name || "علامت وقف")}</div>
-          <div class="mark-card__path">
-            <span>وقف: «${esc(mark.waqf_on || "—")}»</span>
-            <span>ابتدا: «${esc(mark.ibtida_from || "آیهٔ بعد")}»</span>
-          </div>
-          <p class="mark-card__rule">${esc(mark.rule || "")}</p>
-        </div>
-      </article>`
-    )
-    .join("");
-
-  const meta = [verse.page ? `صفحهٔ ${faDigits(verse.page)}` : "", verse.juz ? `جزء ${faDigits(verse.juz)}` : ""]
-    .filter(Boolean)
-    .join(" · ");
-
-  return `<article class="verse-card">
-    <header class="verse-card__head">
-      <div class="verse-card__identity">
-        <span class="verse-number">${faDigits(verse.ayah)}</span>
-        <strong>سورهٔ ${esc(verse.surah_name)}</strong>
-      </div>
-      <span class="verse-card__meta"><span dir="ltr">${esc(verse.surah)}:${esc(verse.ayah)}</span>${meta ? ` · ${meta}` : ""}</span>
+  return `<section class="card section-card">
+    <header class="section-head">
+      <div class="section-title"><span class="section-icon">${icon("sparkle")}</span><div><h2>بهترین مواضع وقف</h2><p>رتبه‌بندی بر پایهٔ جدول محشی و علائم چاپی</p></div></div>
+      <span class="view-all">${faDigits(best.length)} پیشنهاد</span>
     </header>
-    <p class="verse-card__text">${esc(verse.text)}</p>
-    ${marks ? `<div class="marks-list">${marks}</div>` : '<p class="no-marks">این آیه علامت میانی ندارد؛ وقف بر رأس آیه سنت است و ابتدا از آیهٔ بعد خواهد بود.</p>'}
-  </article>`;
+    <div class="best-list">${best.map((item, position) => {
+      const score = Math.max(0, Math.min(100, Number(item.score || 0)));
+      const rank = Number(item.rank || position + 1);
+      return `<article class="best-row${rank === 1 ? " primary" : ""}">
+        <span class="rank">${faDigits(rank)}</span>
+        <div class="point stop"><small>وقف روی</small><strong>${esc(item.waqf_on || "—")}</strong><span class="best-source">${esc(item.source || "")}</span></div>
+        <span class="flow-arrow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5" /></svg></span>
+        <div class="point start"><small>ابتدا از</small><strong>${esc(item.ibtida_from || "—")}</strong><span class="best-source">${esc(item.note || "")}</span></div>
+        <span class="confidence">اطمینان ${faDigits(score)}٪<small>${esc(item.tag || "")}</small></span>
+      </article>`;
+    }).join("")}</div>
+  </section>`;
 }
 
-function renderNeighbors(neighbors, currentVerse) {
+const ANALYSIS_PARTS = [
+  { key: "waqf", title: "دلیل وقف", icon: "stop" },
+  { key: "wasl", title: "دلیل وصل", icon: "link" },
+  { key: "ibtida", title: "دلیل ابتدا", icon: "play" },
+  { key: "wrong", title: "حالات اشتباه", icon: "warning", danger: true },
+];
+
+function renderSummaryPanel(explanation) {
+  const parts = ANALYSIS_PARTS.filter((part) => explanation[part.key]);
+  if (!parts.length) return '<div class="empty-state"><strong>خلاصه‌ای در دسترس نیست</strong>پرسش دیگری را امتحان کنید.</div>';
+  return `<div class="analysis-grid">${parts.map((part) => {
+    const text = String(explanation[part.key]);
+    const wide = text.length > 900 ? " wide" : "";
+    return `<article class="analysis-item${part.danger ? " danger" : ""}${wide}">
+      <div class="analysis-item__head"><span>${icon(part.icon)}</span><strong>${part.title}</strong></div>
+      <div class="prose">${prose(text)}</div>
+    </article>`;
+  }).join("")}</div>`;
+}
+
+function renderRulesPanel(explanation) {
+  const rows = explanation.table || [];
+  if (!rows.length) return '<div class="empty-state"><strong>جدول مستقلی برای این پرسش نیست</strong>جزئیات حکم در بخش خلاصهٔ تحلیل آمده است.</div>';
+  return `<div class="rules-list">${rows.map((row) => `<article class="rule-row">
+    <span class="rule-label">${esc(row.tag || "موضع وقف")}</span>
+    <strong class="rule-stop">وقف: ${esc(row.on || "—")}</strong>
+    <strong class="rule-start">ابتدا: ${esc(row.from || "—")}</strong>
+    ${row.why ? `<p class="rule-explanation">${esc(row.why)}</p>` : ""}
+  </article>`).join("")}</div>`;
+}
+
+function renderDangerPanel(explanation, nahy) {
+  const items = nahy || [];
+  const cards = items.length ? `<div class="danger-list">${items.map((item) => `<article class="danger-item">
+    <strong>${esc(item.on || "—")} <span>${esc(item.kind || "وقف نادرست")} · ${esc(item.severity || "ممنوع")}</span></strong>
+    <p>${esc(item.reason || "")}</p>
+  </article>`).join("")}</div>` : "";
+  const detail = explanation.wrong ? `<div class="analysis-item danger danger-detail"><div class="analysis-item__head"><span>${icon("warning")}</span><strong>توضیح خطاهای معنایی</strong></div><div class="prose">${prose(explanation.wrong)}</div></div>` : "";
+  return cards || detail ? `${cards}${detail}` : '<div class="empty-state"><strong>موضع ممنوعی گزارش نشده است</strong>برای حکم دقیق، یک آیهٔ مشخص را جست‌وجو کنید.</div>';
+}
+
+function renderSourcePanel(explanation, docs) {
+  const disclaimer = explanation.disclaimer ? `<div class="disclaimer-box">${icon("info")}<span>${esc(explanation.disclaimer)}</span></div>` : "";
+  const sources = (docs || []).length ? `<div class="source-list">${docs.slice(0, 6).map((doc) => `<article class="source-item"><strong>${esc(doc.title || doc.path || "سند")}</strong>${doc.snippet ? `<p>${esc(doc.snippet)}</p>` : ""}</article>`).join("")}</div>` : "";
+  return `${disclaimer}${sources}` || '<div class="empty-state"><strong>منبع جداگانه‌ای نمایش داده نشد</strong>نتیجه از داده‌های محلی همین مخزن ساخته شده است.</div>';
+}
+
+function renderTabs(explanation, data) {
+  if (!explanation) return "";
+  return `<section class="card tabs-card">
+    <div class="tabs" role="tablist" aria-label="بخش‌های تحلیل">
+      <button class="tab active" type="button" data-tab="summary" role="tab" aria-selected="true">خلاصهٔ تحلیل</button>
+      <button class="tab" type="button" data-tab="rules" role="tab" aria-selected="false">وقف و ابتدا</button>
+      <button class="tab" type="button" data-tab="danger" role="tab" aria-selected="false">مواضع ممنوع</button>
+      <button class="tab" type="button" data-tab="source" role="tab" aria-selected="false">منبع و روش</button>
+    </div>
+    <div class="tab-panel active" data-panel="summary" role="tabpanel">${renderSummaryPanel(explanation)}</div>
+    <div class="tab-panel" data-panel="rules" role="tabpanel">${renderRulesPanel(explanation)}</div>
+    <div class="tab-panel" data-panel="danger" role="tabpanel">${renderDangerPanel(explanation, explanation.nahy || data.nahy)}</div>
+    <div class="tab-panel" data-panel="source" role="tabpanel">${renderSourcePanel(explanation, data.docs)}</div>
+  </section>`;
+}
+
+function renderNeighbors(neighbors, current) {
   if (!neighbors || !neighbors.length) return "";
-  const cards = neighbors
-    .map((verse) => {
+  return `<section class="card document-card">
+    <header class="document-card__head"><span class="section-icon">${icon("book")}</span><div><h2>آیات هم‌جوار</h2><p>برای بررسی پیوستگی معنایی آیه در سیاق</p></div></header>
+    <div class="neighbor-list">${neighbors.map((verse) => {
       let label = "آیهٔ هم‌جوار";
-      if (currentVerse && verse.surah === currentVerse.surah) {
-        if (verse.ayah < currentVerse.ayah) label = "آیهٔ قبل";
-        if (verse.ayah > currentVerse.ayah) label = "آیهٔ بعد";
-      }
-      return `<article class="context-card">
-        <div class="context-card__label"><span>${label}</span><span>${esc(verse.surah_name)} ${faDigits(verse.ayah)}</span></div>
-        <p class="ayah">${esc(verse.text)}</p>
-      </article>`;
-    })
-    .join("");
-  return `${sectionHeading("book", "آیات هم‌جوار", "برای دیدن پیوستگی معنایی در سیاق آیه")}<div class="context-grid">${cards}</div>`;
+      if (current && current.surah === verse.surah) label = verse.ayah < current.ayah ? "آیهٔ قبل" : "آیهٔ بعد";
+      return `<article class="neighbor"><div class="neighbor__head"><span>${label}</span><span>${esc(verse.surah_name)} ${faDigits(verse.ayah)}</span></div><p>${esc(verse.text)}</p></article>`;
+    }).join("")}</div>
+  </section>`;
+}
+
+function renderCards(cards) {
+  return (cards || []).map((card, index) => `<details class="card raw-details"><summary>نمایش کارت تطبیق فنی${cards.length > 1 ? ` ${faDigits(index + 1)}` : ""}</summary><pre>${esc(card)}</pre></details>`).join("");
 }
 
 function renderWarnings(warnings) {
-  return (warnings || [])
-    .map((warning) => `<div class="warning-card">${icon("warning")}<span>${esc(warning)}</span></div>`)
-    .join("");
+  return (warnings || []).map((warning) => `<div class="warning-box">${icon("warning")}<span>${esc(warning)}</span></div>`).join("");
 }
 
-function kindLabel(kind) {
-  return {
-    verse: "تحلیل یک آیه",
-    range: "تحلیل بازهٔ آیات",
-    marks: "فهرست علائم",
-    topic: "پاسخ دانش‌نامه",
-  }[kind] || "نتیجهٔ جست‌وجو";
+function renderSummaryAside(data) {
+  const verses = data.verses || [];
+  const best = data.best || [];
+  const nahy = data.nahy || [];
+  const marks = verses.reduce((total, verse) => total + (verse.marks || []).length, 0);
+  const score = best.length ? Math.max(0, Math.min(100, Number(best[0].score || 0))) : 0;
+  return `<section class="card summary-card">
+    <h2>خلاصهٔ این تحلیل</h2>
+    <div class="stats">
+      <div class="stat"><span>مواضع پیشنهادی</span><strong>${faDigits(best.length)} <small>موضع</small></strong></div>
+      <div class="stat"><span>مواضع ممنوع</span><strong>${faDigits(nahy.length)} <small>موضع</small></strong></div>
+      <div class="stat"><span>علائم چاپی</span><strong>${faDigits(marks)} <small>علامت</small></strong></div>
+      <div class="stat"><span>آیات نتیجه</span><strong>${faDigits(verses.length)} <small>آیه</small></strong></div>
+    </div>
+    ${best.length ? `<div class="quality"><span class="quality-ring" data-score="${faDigits(score)}" style="background:conic-gradient(var(--green) 0 ${score}%,#cfe4dc ${score}%)"></span><div><strong>اطمینان پیشنهاد اول</strong><small>${esc(best[0].source || "بر پایهٔ داده‌های محلی")}</small></div></div>` : ""}
+  </section>`;
+}
+
+function renderMarksAside() {
+  return `<section class="card marks-card">
+    <h2>راهنمای سریع علائم</h2>
+    <div class="mark-list">
+      <div class="mark-row"><span class="mark-symbol">م</span><div><strong>وقف لازم</strong><small>باید ایستاد</small></div></div>
+      <div class="mark-row"><span class="mark-symbol">لا</span><div><strong>وقف ممنوع</strong><small>نباید ایستاد</small></div></div>
+      <div class="mark-row"><span class="mark-symbol">قلی</span><div><strong>وقف اولی</strong><small>ایستادن بهتر است</small></div></div>
+      <div class="mark-row"><span class="mark-symbol">صلی</span><div><strong>وصل اولی</strong><small>ادامه دادن بهتر است</small></div></div>
+      <div class="mark-row"><span class="mark-symbol">ج</span><div><strong>وقف جایز</strong><small>هر دو حالت درست است</small></div></div>
+    </div>
+  </section>`;
+}
+
+function renderPrivacyAside() {
+  return `<div class="privacy-card"><span>${icon("shield")}</span><div><strong>تحلیل خصوصی و محلی</strong><p>این پرسش در مرورگر یا مخزن ذخیره نمی‌شود.</p></div></div>`;
 }
 
 function render(data) {
   const explanation = data.explanation || {};
-  const firstVerse = data.verses && data.verses[0];
-  const title = explanation.title || data.query || "نتیجهٔ تحلیل";
+  const verses = data.verses || [];
+  const firstVerse = verses[0];
+  const best = explanation.best || data.best || [];
+  const nahy = explanation.nahy || data.nahy || [];
+  data.best = best;
+  data.nahy = nahy;
+
+  const labels = {
+    verse: "تحلیل یک آیه",
+    range: "تحلیل بازهٔ آیات",
+    marks: "فهرست علائم وقف",
+    topic: "پاسخ دانش‌نامه",
+  };
+  resultKind.textContent = labels[data.kind] || "نتیجهٔ جست‌وجو";
+  resultTitle.textContent = faDigits(explanation.title || data.query || "نتیجهٔ تحلیل");
+  resultSubtitle.textContent = data.kind === "topic"
+    ? "پاسخ از دانش‌نامه و اسناد محلی همین مخزن ساخته شده است."
+    : "مواضع وقف، محل ابتدا و خطاهای معنایی این نتیجه را بررسی کنید.";
+
   const meta = [
     explanation.page ? `صفحهٔ ${faDigits(explanation.page)}` : "",
     explanation.juz ? `جزء ${faDigits(explanation.juz)}` : "",
-    data.verses && data.verses.length > 1 ? `${faDigits(data.verses.length)} آیه` : "",
+    verses.length ? `${faDigits(verses.length)} آیه` : "",
   ].filter(Boolean);
+  pageMeta.innerHTML = meta.map((item, index) => `<span class="meta-chip">${index === 0 ? icon("book") : ""}${esc(item)}</span>`).join("");
 
-  const bits = [
-    `<header class="result-title">
-      <div><span class="section-kicker">${kindLabel(data.kind)}</span><h2>${faDigits(esc(title))}</h2></div>
-      <div class="result-title__context">${meta.map((item) => `<span class="meta-pill">${item}</span>`).join("")}</div>
-    </header>`,
+  const main = [
     renderWarnings(data.warnings),
-    renderExplain(explanation, data),
-  ];
+    verses.length ? `<div class="verse-stack">${verses.map(renderVerse).join("")}</div>` : "",
+    renderBest(best),
+    renderTabs(explanation, data),
+    renderNeighbors(data.neighbors, firstVerse),
+    renderCards(data.cards),
+  ].filter(Boolean).join("");
 
-  if (data.verses && data.verses.length) {
-    bits.push(sectionHeading("book", "متن و علائم چاپی", "نمایش علائم وقف در متن عثمانی همین مخزن"));
-    bits.push(`<div class="verse-list">${data.verses.map(renderVerse).join("")}</div>`);
-  }
-
-  bits.push(renderNeighbors(data.neighbors, firstVerse));
-
-  if (data.cards && data.cards.length) {
-    bits.push(
-      data.cards
-        .map(
-          (card, index) => `<details class="raw-card"><summary>نمایش کارت تطبیق فنی${data.cards.length > 1 ? ` ${faDigits(index + 1)}` : ""}</summary><pre>${esc(card)}</pre></details>`
-        )
-        .join("")
-    );
-  }
-
-  const result = bits.filter(Boolean).join("\n");
-  out.innerHTML = result || '<div class="empty-result"><strong>نتیجه‌ای پیدا نشد</strong>نام سوره و شمارهٔ آیه را دوباره بررسی کنید.</div>';
-  welcome.hidden = true;
+  out.innerHTML = `<div class="dashboard">
+    <div class="stack">${main || '<div class="card empty-state"><strong>نتیجه‌ای پیدا نشد</strong>نام سوره و شمارهٔ آیه را دوباره بررسی کنید.</div>'}</div>
+    <aside class="side-stack">${renderSummaryAside(data)}${renderMarksAside()}${renderPrivacyAside()}</aside>
+  </div>`;
 }
 
 async function run(rawQuery, options = {}) {
@@ -450,11 +398,10 @@ async function run(rawQuery, options = {}) {
   const request = new AbortController();
   activeRequest = request;
   input.value = query;
-  clearSearch.hidden = false;
-  welcome.hidden = true;
   out.innerHTML = loadingTemplate();
-  setStatus("در حال خواندن داده‌ها و تحلیل مواضع…");
+  setStatus("در حال خواندن داده‌ها و ساخت تحلیل…");
   setLoading(true);
+  closeMenu();
 
   try {
     const response = await fetch(`/api/ask?q=${encodeURIComponent(query)}`, {
@@ -463,102 +410,71 @@ async function run(rawQuery, options = {}) {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "پاسخی از موتور دریافت نشد.");
-    setStatus();
     render(data);
-    if (options.scroll !== false) {
-      requestAnimationFrame(() => out.scrollIntoView({ behavior: "smooth", block: "start" }));
-    }
+    setStatus();
+    if (options.scroll) requestAnimationFrame(() => out.scrollIntoView({ behavior: "smooth", block: "start" }));
   } catch (error) {
     if (error.name === "AbortError") return;
-    out.innerHTML = '<div class="empty-result"><strong>تحلیل انجام نشد</strong>ارتباط با موتور محلی را بررسی و دوباره تلاش کنید.</div>';
-    setStatus(
-      `${error.message || String(error)} — مطمئن شوید برنامه با دستور python3 -m engine serve اجرا شده است.`,
-      "error"
-    );
+    out.innerHTML = '<div class="dashboard"><div class="stack"><div class="card empty-state"><strong>تحلیل انجام نشد</strong>ارتباط با موتور محلی را بررسی و دوباره تلاش کنید.</div></div></div>';
+    setStatus(`${error.message || String(error)} — برنامه را با دستور python3 -m engine serve اجرا کنید.`, "error");
   } finally {
     if (activeRequest === request) {
-      setLoading(false);
       activeRequest = null;
+      setLoading(false);
     }
   }
-}
-
-function updateClearButton() {
-  clearSearch.hidden = !input.value;
-}
-
-function setTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  themeToggle.setAttribute("aria-label", theme === "dark" ? "فعال کردن حالت روشن" : "فعال کردن حالت تیره");
-  themeToggle.title = theme === "dark" ? "حالت روشن" : "حالت تیره";
-  try {
-    localStorage.setItem("mushaf-theme", theme);
-  } catch (_) {
-    // The visual preference is optional; private browsing may disable storage.
-  }
-}
-
-function initialTheme() {
-  try {
-    const saved = localStorage.getItem("mushaf-theme");
-    if (saved === "light" || saved === "dark") return saved;
-  } catch (_) {
-    // Fall back to the operating-system preference.
-  }
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  run(input.value);
+  run(input.value, { scroll: true });
 });
 
-input.addEventListener("input", updateClearButton);
-input.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && input.value) {
-    input.value = "";
-    updateClearButton();
+document.addEventListener("click", (event) => {
+  const queryButton = event.target.closest("[data-query]");
+  if (queryButton) {
+    run(queryButton.dataset.query, { scroll: true });
+    return;
+  }
+
+  const tab = event.target.closest(".tab[data-tab]");
+  if (tab) {
+    const tabsCard = tab.closest(".tabs-card");
+    tabsCard.querySelectorAll(".tab").forEach((item) => {
+      const active = item === tab;
+      item.classList.toggle("active", active);
+      item.setAttribute("aria-selected", String(active));
+    });
+    tabsCard.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === tab.dataset.tab));
   }
 });
 
-clearSearch.addEventListener("click", () => {
-  input.value = "";
-  updateClearButton();
+menuButton.addEventListener("click", () => {
+  const open = !sidebar.classList.contains("open");
+  sidebar.classList.toggle("open", open);
+  overlay.classList.toggle("show", open);
+  menuButton.setAttribute("aria-expanded", String(open));
+});
+overlay.addEventListener("click", closeMenu);
+
+document.getElementById("helpButton").addEventListener("click", () => {
+  showToast("نام سوره و شمارهٔ آیه را بنویسید؛ مثال: بقره ۹۱");
   input.focus();
 });
 
-document.getElementById("chips").addEventListener("click", (event) => {
-  const button = event.target.closest("button[data-q]");
-  if (button) run(button.dataset.q);
-});
-
-themeToggle.addEventListener("click", () => {
-  setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
-});
-
-backToTop.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
-window.addEventListener(
-  "scroll",
-  () => {
-    backToTop.hidden = window.scrollY < 700;
-  },
-  { passive: true }
-);
-
-setTheme(initialTheme());
-updateClearButton();
-
-const firstQuery = new URLSearchParams(location.search).get("q");
-if (firstQuery) run(firstQuery, { scroll: false });
+const firstQuery = new URLSearchParams(location.search).get("q") || "بقره ۹۱";
+run(firstQuery, { scroll: false });
 
 fetch("/api/health", { headers: { Accept: "application/json" } })
-  .then(async (response) => ({ response, body: await response.json() }))
-  .then(({ response, body }) => {
-    const ready = response.ok && body && body.ok;
-    healthBadge.className = `health-badge ${ready ? "health-badge--ready" : "health-badge--error"}`;
+  .then(async (response) => ({ ok: response.ok, data: await response.json() }))
+  .then(({ ok, data }) => {
+    const ready = ok && data && data.ok;
+    healthBadge.className = `local-status ${ready ? "" : "health-error"}`;
     healthText.textContent = ready ? "موتور آماده است" : "داده‌ها نیاز به بررسی دارند";
+    sidebarHealth.textContent = ready ? "موتور محلی آماده است" : "موتور نیاز به بررسی دارد";
   })
   .catch(() => {
-    healthBadge.className = "health-badge health-badge--error";
+    healthBadge.className = "local-status health-error";
     healthText.textContent = "موتور در دسترس نیست";
+    sidebarHealth.textContent = "موتور در دسترس نیست";
   });
