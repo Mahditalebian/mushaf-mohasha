@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from . import jadval, knowledge, quran
+from .explain import explain, format_explanation
 from .match import alignment_card
 from .models import ContextPack, Verse
 from .parse import parse_query
@@ -31,19 +32,20 @@ def ask(question: str) -> ContextPack:
 
     elif parsed.kind == "marks" and parsed.mark:
         found = quran.find_by_mark(parsed.mark)
-        pack.verses = found
+        pack.verses = found[:40]
         extra.append(parsed.mark)
+        if len(found) > 40:
+            pack.warnings.append(f"{len(found)} آیه این علامت را دارد؛ ۴۰ تای اول آمده.")
 
     else:
-        pack.docs = knowledge.search_docs(question, extra_terms=extra, limit=5)
         if parsed.mark:
             found = quran.find_by_mark(parsed.mark)
             pack.verses = found[:12]
             if len(found) > 12:
                 pack.warnings.append(f"{len(found)} آیه این علامت را دارد؛ ۱۲ تای اول آمده.")
-        return pack
 
-    pack.docs = knowledge.search_docs(question, extra_terms=extra, limit=4)
+    pack.docs = knowledge.search_docs(question, extra_terms=extra, limit=5 if pack.kind == "topic" else 4)
+    pack.explanation = explain(pack)
     return pack
 
 
@@ -62,38 +64,23 @@ def _mark_terms(verse: Verse) -> list[str]:
 
 def format_pack(pack: ContextPack) -> str:
     lines: list[str] = []
-    lines.append(f"# زمینه از ریپو")
-    lines.append(f"پرسش: {pack.query}")
-    lines.append(f"نوع: {pack.kind}")
-    lines.append("")
-
     if pack.warnings:
         lines.append("هشدار:")
         for w in pack.warnings:
             lines.append(f"- {w}")
         lines.append("")
 
-    if pack.verses:
-        lines.append("## آیات")
+    if pack.explanation:
+        lines.append(format_explanation(pack.explanation))
+    else:
+        lines.append(f"پرسش: {pack.query}")
+        lines.append("")
+
+    if pack.kind in {"verse", "range"} and pack.verses and len(pack.verses) <= 3:
+        lines.append("## تطبیق با مصحف کاغذی")
         for v in pack.verses:
-            lines.append(f"### {v.surah_name} {v.ayah}  ({v.surah}:{v.ayah})")
-            lines.append(v.text)
-            if v.marks:
-                lines.append("علائم:")
-                for m in v.marks:
-                    bit = f"- وقف روی «{m.before}» — {m.symbol} {m.letter} / {m.name}"
-                    if m.after:
-                        bit += f"\n  ابتدا از: «{m.after}»"
-                    bit += f"\n  {m.rule}"
-                    lines.append(bit)
-            else:
-                lines.append("علامت میانی ندارد. رأس آیه را جدا در نظر بگیر. اگر نفس نرسید بهترین نقطهٔ معنایی را بگو.")
+            lines.append(alignment_card(v))
             lines.append("")
-        if pack.kind in {"verse", "range"} and len(pack.verses) <= 3:
-            lines.append("## تطبیق با مصحف محشی")
-            for v in pack.verses:
-                lines.append(alignment_card(v))
-                lines.append("")
 
     if pack.neighbors:
         lines.append("## آیه قبل و بعد")
@@ -101,31 +88,12 @@ def format_pack(pack: ContextPack) -> str:
             lines.append(f"- {v.surah}:{v.ayah} {v.text}")
         lines.append("")
 
-    if pack.jadval:
-        lines.append("## جدول مصحف محشی (حسینی)")
-        for row in pack.jadval:
-            lines.append(jadval.format_row(row))
-            chk = jadval.verify_row(row)
-            if not chk["ok"]:
-                bad = [h["phrase"] for h in chk["hits"] if h["ok"] is False]
-                lines.append("  (عبارت در آیه پیدا نشد: " + "، ".join(bad) + ")")
-            lines.append("")
-
-    if pack.notes:
-        lines.append("## یادداشت موجود در ریپو")
-        for path, text in pack.notes:
-            lines.append(f"### {path}")
-            lines.append(text.strip())
-            lines.append("")
-
-    if pack.docs:
-        lines.append("## از docs/")
-        for doc in pack.docs:
-            lines.append(f"### {doc.title}  ({doc.path})")
+    if pack.docs and pack.kind != "topic":
+        lines.append("## از دانش‌نامه")
+        for doc in pack.docs[:2]:
+            lines.append(f"### {doc.title}")
             lines.append(doc.snippet)
             lines.append("")
 
-    lines.append("## قالب جواب")
-    lines.append("۱) دلیل وقف  ۲) دلیل وصل  ۳) دلیل ابتدا  ۴) حالات اشتباه")
-    lines.append("سؤال را در ریپو ذخیره نکن. فقط از همین زمینه جواب بده.")
+    lines.append("سؤال در ریپو ذخیره نشد.")
     return "\n".join(lines).strip() + "\n"

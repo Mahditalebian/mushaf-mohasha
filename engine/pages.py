@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from .paths import ROOT
-
-PAGES_FILE = ROOT / "data" / "pages.tsv"
+from .paths import PAGES_FILE
 
 
 @lru_cache(maxsize=1)

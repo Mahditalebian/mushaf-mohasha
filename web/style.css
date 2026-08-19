@@ -78,4 +78,7 @@ pre, .note {
   overflow-x: auto;
 }
 h2 { font-size: 1.15rem; margin: 1.2rem 0 .4rem; }
+h3 { font-size: 1.05rem; margin: 1.1rem 0 .35rem; color: var(--accent); }
+.explain .prose { margin: .4rem 0 1rem; }
+.explain code { font-family: inherit; background: #f3eee3; padding: 0 .2rem; border-radius: 4px; }
 footer { margin-top: 3rem; font-size: .9rem; }

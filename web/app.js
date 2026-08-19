@@ -15,6 +15,15 @@ function esc(s) {
     .replace(/>/g, "&gt;");
 }
 
+function prose(s) {
+  return esc(s)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/^### (.+)$/gm, "<strong>$1</strong>")
+    .replace(/^- /gm, "• ")
+    .replace(/\n/g, "<br>");
+}
+
 function renderVerse(v) {
   const marks = (v.marks || [])
     .map(
@@ -40,48 +49,59 @@ function renderVerse(v) {
   </article>`;
 }
 
+function renderExplain(ex) {
+  if (!ex) return "";
+  const meta = [
+    ex.page ? `صفحه ${ex.page} مصحف ۶۰۴صفحه‌ای` : "",
+    ex.juz ? `جزء ${ex.juz}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  let table = "";
+  if (ex.table && ex.table.length) {
+    const rows = ex.table
+      .map(
+        (r) => `<tr>
+          <td>${esc(r.tag || "—")}</td>
+          <td class="waqf">${esc(r.on || "—")}</td>
+          <td class="ibtida">${esc(r.from || "—")}</td>
+          <td>${esc(r.why || "")}</td>
+        </tr>`
+      )
+      .join("");
+    table = `<table>
+      <thead><tr><th>نوع</th><th>وقف روی</th><th>ابتدا از</th><th>چرا</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+  return `<section class="card explain">
+    <h2>${esc(ex.title || "استدلال معنایی")}</h2>
+    ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
+    ${ex.intro ? `<div class="prose ayah">${prose(ex.intro)}</div>` : ""}
+    ${table}
+    ${ex.waqf ? `<h3>۱) دلیل وقف</h3><div class="prose">${prose(ex.waqf)}</div>` : ""}
+    ${ex.wasl ? `<h3>۲) دلیل وصل</h3><div class="prose">${prose(ex.wasl)}</div>` : ""}
+    ${ex.ibtida ? `<h3>۳) دلیل ابتدا</h3><div class="prose">${prose(ex.ibtida)}</div>` : ""}
+    ${ex.wrong ? `<h3>۴) حالات اشتباه</h3><div class="prose">${prose(ex.wrong)}</div>` : ""}
+    ${ex.disclaimer ? `<p class="meta">${esc(ex.disclaimer)}</p>` : ""}
+  </section>`;
+}
+
 function render(data) {
   const bits = [];
-  bits.push(`<p class="meta">نوع پرسش: ${esc(data.kind)}</p>`);
+  bits.push(renderExplain(data.explanation));
   (data.warnings || []).forEach((w) => bits.push(`<p>${esc(w)}</p>`));
-  (data.verses || []).forEach((v) => bits.push(renderVerse(v)));
-  (data.cards || []).forEach((c) => bits.push(`<section class="card"><pre>${esc(c)}</pre></section>`));
+  if (data.verses && data.verses.length) {
+    bits.push("<h2>علائم چاپی آیه</h2>");
+    data.verses.forEach((v) => bits.push(renderVerse(v)));
+  }
   if (data.neighbors && data.neighbors.length) {
     bits.push("<h2>آیه قبل و بعد</h2>");
     data.neighbors.forEach((v) => {
       bits.push(`<p class="ayah"><span class="meta">${v.surah}:${v.ayah}</span> ${esc(v.text)}</p>`);
     });
   }
-  if (data.jadval && data.jadval.length) {
-    bits.push("<h2>جدول مصحف محشی</h2>");
-    data.jadval.forEach((row) => {
-      const pairs = [];
-      const n = Math.max((row.waqf || []).length, (row.ibtida || []).length);
-      for (let i = 0; i < n; i++) {
-        const w = (row.waqf || [])[i] || {};
-        const b = (row.ibtida || [])[i] || {};
-        const tag = w.tag || b.tag || "";
-        pairs.push(`<tr>
-          <td>${esc(tag)}</td>
-          <td class="waqf">${esc(w.on || "—")}</td>
-          <td class="ibtida">${esc(b.from || "—")}</td>
-        </tr>`);
-      }
-      bits.push(`<article class="card"><table>
-        <thead><tr><th>نوع</th><th>وقف روی</th><th>ابتدا از</th></tr></thead>
-        <tbody>${pairs.join("")}</tbody>
-      </table></article>`);
-    });
-  }
-  (data.notes || []).forEach((n) => {
-    bits.push(`<h2>یادداشت ریپو</h2><p class="meta">${esc(n.path)}</p><div class="note">${esc(n.text)}</div>`);
-  });
-  if (data.docs && data.docs.length) {
-    bits.push("<h2>از دانش‌نامه</h2>");
-    data.docs.forEach((d) => {
-      bits.push(`<article class="card"><strong>${esc(d.title)}</strong><p>${esc(d.snippet)}</p></article>`);
-    });
-  }
+  (data.cards || []).forEach((c) => bits.push(`<section class="card"><pre>${esc(c)}</pre></section>`));
   out.innerHTML = bits.join("\n");
 }
 
@@ -97,7 +117,10 @@ async function run(q) {
     setStatus("", false);
     render(data);
   } catch (err) {
-    setStatus(err.message || String(err));
+    setStatus(
+      (err.message || String(err)) +
+        " — اگر فایل HTML را مستقیم باز کرده‌ای، اول از پوشهٔ ریپو بزن: python3 -m engine serve"
+    );
   }
 }
 
@@ -113,3 +136,10 @@ document.getElementById("chips").addEventListener("click", (e) => {
 
 const first = new URLSearchParams(location.search).get("q");
 if (first) run(first);
+
+fetch("/api/health")
+  .then((r) => r.json())
+  .then((h) => {
+    if (h && h.ok === false) setStatus("داده ناقص است. python3 -m engine check", true);
+  })
+  .catch(() => {});

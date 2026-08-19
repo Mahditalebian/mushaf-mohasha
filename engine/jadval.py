@@ -7,10 +7,10 @@ from functools import lru_cache
 from pathlib import Path
 
 from .normalize import fold
-from .paths import ROOT
+from .paths import JADVAL_DIR
 from .quran import get_text
 
-RAW = ROOT / "data" / "jadval_raw"
+RAW = JADVAL_DIR
 
 
 _DROP = dict.fromkeys(

@@ -112,6 +112,7 @@ class ContextPack:
     jadval: list[dict] = field(default_factory=list)
     protocol: str = ""
     warnings: list[str] = field(default_factory=list)
+    explanation: dict | None = None
 
     def to_dict(self) -> dict:
         cards = []
@@ -129,4 +130,5 @@ class ContextPack:
             "docs": [d.to_dict() for d in self.docs],
             "jadval": self.jadval,
             "cards": cards,
+            "explanation": self.explanation,
         }
