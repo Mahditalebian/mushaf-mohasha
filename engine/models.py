@@ -110,6 +110,7 @@ class ContextPack:
     notes: list[tuple[str, str]] = field(default_factory=list)
     docs: list[DocHit] = field(default_factory=list)
     jadval: list[dict] = field(default_factory=list)
+    best: list[dict] = field(default_factory=list)
     protocol: str = ""
     warnings: list[str] = field(default_factory=list)
     explanation: dict | None = None
@@ -129,6 +130,7 @@ class ContextPack:
             "notes": [{"path": p, "text": t} for p, t in self.notes],
             "docs": [d.to_dict() for d in self.docs],
             "jadval": self.jadval,
+            "best": self.best,
             "cards": cards,
             "explanation": self.explanation,
         }

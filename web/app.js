@@ -74,11 +74,32 @@ function renderExplain(ex) {
       <tbody>${rows}</tbody>
     </table>`;
   }
+  let best = "";
+  if (ex.best && ex.best.length) {
+    const rows = ex.best
+      .map(
+        (b) => `<tr class="${String(b.source || "").startsWith("تأیید دو منبع") ? "agree" : ""}">
+          <td>${esc(b.rank)}</td>
+          <td>${esc(b.score)}</td>
+          <td class="waqf">${esc(b.waqf_on || "—")}</td>
+          <td class="ibtida">${esc(b.ibtida_from || "—")}</td>
+          <td>${esc(b.source || "—")}</td>
+        </tr>`
+      )
+      .join("");
+    best = `<h3>بهترین مواضع (ترکیب محشی + علائم چاپی)</h3>
+    <table>
+      <thead><tr><th>رتبه</th><th>امتیاز</th><th>وقف روی</th><th>ابتدا از</th><th>منبع</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="meta">جایی که محشی و علامت چاپی همرأی‌اند «تأیید دو منبع» است — مطمئن‌ترین جای وقف.</p>`;
+  }
   return `<section class="card explain">
     <h2>${esc(ex.title || "استدلال معنایی")}</h2>
     ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
     ${ex.intro ? `<div class="prose ayah">${prose(ex.intro)}</div>` : ""}
     ${table}
+    ${best}
     ${ex.waqf ? `<h3>۱) دلیل وقف</h3><div class="prose">${prose(ex.waqf)}</div>` : ""}
     ${ex.wasl ? `<h3>۲) دلیل وصل</h3><div class="prose">${prose(ex.wasl)}</div>` : ""}
     ${ex.ibtida ? `<h3>۳) دلیل ابتدا</h3><div class="prose">${prose(ex.ibtida)}</div>` : ""}

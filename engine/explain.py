@@ -57,6 +57,21 @@ def format_explanation(ex: dict) -> str:
                 f"| {row.get('tag') or '—'} | {row.get('on') or '—'} | "
                 f"{row.get('from') or '—'} | {row.get('why') or ''} |"
             )
+    best = ex.get("best") or []
+    if best:
+        lines.append("")
+        lines.append("## بهترین مواضع (ترکیب محشی + علائم چاپی)")
+        lines.append("")
+        lines.append("| رتبه | امتیاز | وقف روی | ابتدا از | منبع |")
+        lines.append("| --- | --- | --- | --- | --- |")
+        for row in best:
+            lines.append(
+                f"| {row.get('rank')} | {row.get('score')} | {row.get('waqf_on') or '—'} | "
+                f"{row.get('ibtida_from') or '—'} | {row.get('source') or '—'} |"
+            )
+        if any(b.get("source", "").startswith("تأیید دو منبع") for b in best):
+            lines.append("")
+            lines.append("«تأیید دو منبع» یعنی جدول محشی و علامت چاپی اینجا همرأی‌اند — مطمئن‌ترین جای وقف.")
     if ex.get("waqf"):
         lines.append("")
         lines.append("## ۱) دلیل وقف")
@@ -116,6 +131,17 @@ def _explain_verses(pack: ContextPack) -> dict:
     if notes_from_table:
         intro_bits.append("یادداشت جدول محشی: " + " ".join(notes_from_table))
 
+    best_rows = [
+        {
+            "rank": e.get("rank"),
+            "score": e.get("score"),
+            "waqf_on": e.get("waqf_on"),
+            "ibtida_from": e.get("ibtida_from"),
+            "source": e.get("source"),
+        }
+        for e in pack.best[:5]
+    ]
+
     return {
         "title": title,
         "page": page,
@@ -123,6 +149,7 @@ def _explain_verses(pack: ContextPack) -> dict:
         "source": source,
         "intro": "\n\n".join(intro_bits),
         "table": table,
+        "best": best_rows,
         "waqf": parts["waqf"].strip(),
         "wasl": parts["wasl"].strip(),
         "ibtida": parts["ibtida"].strip(),

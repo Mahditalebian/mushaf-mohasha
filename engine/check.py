@@ -67,6 +67,20 @@ def verify() -> Report:
         r.add(any(m.symbol == "ۗ" for m in v.marks), "قلی روی معهم در بقره ۹۱")
     r.add(bool(pack.jadval), "جدول محشی برای بقره ۹۱")
     r.add(bool(pack.explanation and pack.explanation.get("waqf")), "استدلال چهاربخشی ساخته شد")
+
+    from .best import best_places, summary
+
+    best91 = best_places(2, 91)
+    r.add(bool(best91 and best91[0].get("waqf_on")), "بهترین مواضع برای بقره ۹۱")
+    best101 = best_places(5, 101)
+    r.add(
+        any(e.get("source", "").startswith("تأیید دو منبع") for e in best101),
+        "تأیید دو منبع (محشی + علامت چاپی) در مائده ۱۰۱",
+    )
+    s = summary()
+    r.add(s["total"] == 6236, f"کل آیات در ترکیب: {s['total']}")
+    r.add(s["coverage"] == 6236, f"پوشش بهترین مواضع: {s['coverage']} آیه (کل قرآن)")
+    r.add(s["agreements"] >= 0, f"مواضع تأیید دو منبع: {s['agreements']}")
     return r
 
 
