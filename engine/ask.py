@@ -5,6 +5,7 @@ from .best import best_places
 from .explain import explain, format_explanation
 from .match import alignment_card
 from .models import ContextPack, Verse
+from .nahy import forbidden_stops
 from .parse import parse_query
 
 
@@ -26,6 +27,7 @@ def ask(question: str) -> ContextPack:
                 pack.notes.append(note)
             pack.jadval.extend(jadval.by_verse(parsed.surah, ayah))
             pack.best.extend(best_places(parsed.surah, ayah))
+            pack.nahy.extend(forbidden_stops(v))
         if parsed.kind == "verse" and pack.verses:
             v0 = pack.verses[0]
             pack.neighbors = quran.neighbors(v0.surah, v0.ayah)

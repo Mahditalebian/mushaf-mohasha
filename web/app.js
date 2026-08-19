@@ -94,12 +94,31 @@ function renderExplain(ex) {
     </table>
     <p class="meta">جایی که محشی و علامت چاپی همرأی‌اند «تأیید دو منبع» است — مطمئن‌ترین جای وقف.</p>`;
   }
+  let nahy = "";
+  if (ex.nahy && ex.nahy.length) {
+    const rows = ex.nahy
+      .map(
+        (h) => `<tr class="nahy-row">
+          <td>${esc(h.severity || "—")}</td>
+          <td class="waqf">${esc(h.on || "—")}</td>
+          <td>${esc(h.kind || "—")}</td>
+          <td>${esc(h.reason || "")}</td>
+        </tr>`
+      )
+      .join("");
+    nahy = `<h3>کجا نباید وقف کرد (تحلیل کلمه‌به‌کلمهٔ همین آیه)</h3>
+    <table class="nahy">
+      <thead><tr><th>شدت</th><th>روی کلمه</th><th>نوع</th><th>چرا نایست</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
   return `<section class="card explain">
     <h2>${esc(ex.title || "استدلال معنایی")}</h2>
     ${meta ? `<p class="meta">${esc(meta)}</p>` : ""}
     ${ex.intro ? `<div class="prose ayah">${prose(ex.intro)}</div>` : ""}
     ${table}
     ${best}
+    ${nahy}
     ${ex.waqf ? `<h3>۱) دلیل وقف</h3><div class="prose">${prose(ex.waqf)}</div>` : ""}
     ${ex.wasl ? `<h3>۲) دلیل وصل</h3><div class="prose">${prose(ex.wasl)}</div>` : ""}
     ${ex.ibtida ? `<h3>۳) دلیل ابتدا</h3><div class="prose">${prose(ex.ibtida)}</div>` : ""}

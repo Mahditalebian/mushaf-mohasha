@@ -72,6 +72,18 @@ def format_explanation(ex: dict) -> str:
         if any(b.get("source", "").startswith("تأیید دو منبع") for b in best):
             lines.append("")
             lines.append("«تأیید دو منبع» یعنی جدول محشی و علامت چاپی اینجا همرأی‌اند — مطمئن‌ترین جای وقف.")
+    nahy = ex.get("nahy") or []
+    if nahy:
+        lines.append("")
+        lines.append("## کجا در این آیه نباید وقف کرد (تحلیل کلمه‌به‌کلمه)")
+        lines.append("")
+        lines.append("| شدت | روی کلمه | نوع | چرا نایست |")
+        lines.append("| --- | --- | --- | --- |")
+        for row in nahy:
+            lines.append(
+                f"| {row.get('severity') or '—'} | {row.get('on') or '—'} | "
+                f"{row.get('kind') or '—'} | {row.get('reason') or ''} |"
+            )
     if ex.get("waqf"):
         lines.append("")
         lines.append("## ۱) دلیل وقف")
@@ -131,6 +143,22 @@ def _explain_verses(pack: ContextPack) -> dict:
     if notes_from_table:
         intro_bits.append("یادداشت جدول محشی: " + " ".join(notes_from_table))
 
+    if pack.nahy:
+        block = ["### وقف غلط کلمه‌به‌کلمه در همین آیه"]
+        for h in pack.nahy:
+            block.append(f"- روی «{h.get('on')}» نایست — {h.get('reason')}")
+        parts["wrong"] = (parts["wrong"] + "\n\n" + "\n".join(block)).strip()
+
+    nahy_rows = [
+        {
+            "severity": h.get("severity"),
+            "on": h.get("on"),
+            "kind": h.get("kind"),
+            "reason": h.get("reason"),
+        }
+        for h in pack.nahy
+    ]
+
     best_rows = [
         {
             "rank": e.get("rank"),
@@ -150,6 +178,7 @@ def _explain_verses(pack: ContextPack) -> dict:
         "intro": "\n\n".join(intro_bits),
         "table": table,
         "best": best_rows,
+        "nahy": nahy_rows,
         "waqf": parts["waqf"].strip(),
         "wasl": parts["wasl"].strip(),
         "ibtida": parts["ibtida"].strip(),

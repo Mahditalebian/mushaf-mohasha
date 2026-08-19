@@ -87,3 +87,8 @@ tr.agree td {
   background: #eef4ec;
   font-weight: 700;
 }
+
+tr.nahy-row td {
+  background: #fdeee8;
+  color: #7a2c18;
+}

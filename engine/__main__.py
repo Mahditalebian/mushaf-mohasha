@@ -26,6 +26,10 @@ def main(argv: list[str] | None = None) -> int:
         from .best import best_cli
 
         return best_cli(args[1:])
+    if cmd in {"nahy", "نایست"}:
+        from .nahy import nahy_cli
+
+        return nahy_cli(args[1:])
     question = " ".join(args)
     from .ask import ask, format_pack
 
